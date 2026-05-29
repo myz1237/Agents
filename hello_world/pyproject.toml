@@ -3,8 +3,33 @@ name = "hello-world"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dependencies = [
     "anthropic>=0.105.2",
+    "datetime>=6.0",
     "dotenv>=0.9.9",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.15",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle 错误
+    "W",   # pycodestyle 警告
+    "F",   # pyflakes:未用变量/import、未定义名等
+    "I",   # isort:import 排序(配合保存时自动整理 import)
+    "UP",  # pyupgrade:用更新的 Python 语法
+    "B",   # flake8-bugbear:常见易错写法
+    "SIM", # flake8-simplify:可简化的写法
+    "C4",  # flake8-comprehensions:更好的推导式
+]
+ignore = [
+    # "E501",  # line-too-long:换行交给 formatter 处理,不再报警
 ]
