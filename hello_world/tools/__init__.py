@@ -12,6 +12,7 @@ __init__.py means callers never need to know which file a tool lives in.
 from consts import TOOL_NAME
 
 from .calcualtion_eval import calculator
+from .descriptions import tools
 from .files import list_directory, read_file_in_sandbox, str_replace, write_file_in_sandbox
 from .shell import run_shell_in_sandbox
 from .times import get_current_time, time_offset
@@ -29,4 +30,4 @@ tool_map = {
 }
 
 # Controls what `from tools import *` exposes — only the map, nothing else.
-__all__ = ["tool_map"]
+__all__ = ["tool_map", "tools"]
