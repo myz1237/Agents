@@ -68,6 +68,14 @@ tools: list[dict] = [
                     "type": "string",
                     "description": "The absolute or relative path to the file to read.",
                 },
+                "start_line": {
+                    "type": "integer",
+                    "description": "First line to read (1-indexed, inclusive). Optional.",
+                },
+                "end_line": {
+                    "type": "integer",
+                    "description": "Last line to read (1-indexed, inclusive). Optional, defaults to end of file.",
+                },
                 "max_lines": {
                     "type": "integer",
                     "description": "The maximum number of lines to read from the file. Default is 500.",

@@ -90,8 +90,13 @@ def folder_path_checker(user_input_path: str) -> dict:
 
 
 def read_file_in_sandbox(tool_input: dict) -> dict:
-    file_path: str = tool_input.get("file_path")
+    file_path: str | None = tool_input.get("file_path")
     max_lines: int = tool_input.get("max_lines", 500)
+    start_line: int | None = tool_input.get("start_line")  # 1-indexed, optional
+    end_line: int | None = tool_input.get("end_line")  # 1-indexed, optional
+
+    if file_path is None:
+        return err("file_path is required to read a file.")
 
     file_check_result = file_path_checker(file_path)
     if file_check_result["is_error"]:
@@ -100,15 +105,33 @@ def read_file_in_sandbox(tool_input: dict) -> dict:
 
     # try to read with utf-8 encoding, if fails, return error message
     try:
-        with safe_path.open("r", encoding="utf-8") as f:
-            lines = []
-            for i, line in enumerate(f):
-                if i >= max_lines:
-                    break
-                lines.append(line.rstrip("\n"))
-        return ok("\n".join(lines))
+        lines = safe_path.read_text(encoding="utf-8").splitlines()
     except Exception as e:
         return err(f"Error reading file: {e}")
+
+    total = len(lines)
+
+    # When neither bound is supplied, read normally capped at max_lines.
+    use_range = start_line is not None or end_line is not None
+    if not use_range:
+        return ok("\n".join(lines[:max_lines]))
+
+    # Missing start defaults to the first line; missing end reads to EOF.
+    if start_line is None:
+        start_line = 1
+    if end_line is None:
+        end_line = total
+
+    if start_line < 1:
+        return err(f"start_line must be >= 1, got {start_line}.")
+    if start_line > total:
+        return err(f"start_line ({start_line}) is past the end of the file ({total} lines).")
+    if end_line < start_line:
+        return err(f"end_line ({end_line}) must be >= start_line ({start_line}).")
+
+    sliced = lines[start_line - 1 : end_line]
+    lined_contents = "\n".join(f"{n + start_line}: {line}" for n, line in enumerate(sliced))
+    return ok(f"Lines {start_line}-{end_line} of {total}:\n{lined_contents}")
 
 
 def list_directory(tool_input: dict) -> dict:

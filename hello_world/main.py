@@ -139,7 +139,7 @@ def run_agent(
 
 if __name__ == "__main__":
     session_id = str(uuid.uuid4())
-    start_message = "哪些地方用到了 reverse_string?"
+    start_message = "帮我在mini-project里面找一下所有的函数?"
     cumulative_usages = run_agent(start_message, session_id)
     print_usage(cumulative_usages)
     langfuse_client.flush()
