@@ -120,7 +120,7 @@ def list_directory(tool_input: dict) -> dict:
 
     try:
         entries = [
-            "📁" if entry.is_dir() else "📄" + entry.name
+            ("📁" if entry.is_dir() else "📄") + entry.name
             for entry in safe_path.iterdir()
             if not entry.name.startswith(".")
         ]

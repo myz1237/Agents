@@ -17,8 +17,10 @@ class TOOL_NAME(StrEnum):
 
 
 DEFAULT_MAX_ITERATION = 100
-SANDBOX_DIR = "./sandbox"
-SANDBOX_PATH = Path(SANDBOX_DIR)
+# Anchor the sandbox to this file's location, not the current working
+# directory, so it resolves to the same place no matter where the script is run.
+SANDBOX_PATH = Path(__file__).resolve().parent / "sandbox"
+SANDBOX_DIR = str(SANDBOX_PATH)
 makedirs(SANDBOX_DIR, exist_ok=True)
 
 EMPTY_USAGE = Usage(

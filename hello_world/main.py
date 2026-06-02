@@ -3,12 +3,22 @@ import os
 import anthropic
 from anthropic.types import Model, Usage
 from dotenv import load_dotenv
+from langfuse import get_client, observe
+from opentelemetry.instrumentation.anthropic import AnthropicInstrumentor
 
-from consts import ALLOWED_COMMANDS, DEFAULT_MAX_ITERATION, EMPTY_USAGE, SYSTEM_PROMPT_WITH_CACHE, TOOL_NAME
+from consts import DEFAULT_MAX_ITERATION, EMPTY_USAGE, SYSTEM_PROMPT_WITH_CACHE, TOOL_NAME
 from tools import tool_map
 from utils import err, print_usage, usage_add
 
 load_dotenv()
+AnthropicInstrumentor().instrument()
+langfuse_client = get_client()
+
+if langfuse_client.auth_check():
+    print("Successfully authenticated with Langfuse.")
+else:
+    print("Failed to authenticate with Langfuse. Please check your API key and base URL.")
+
 
 api_key: str | None = os.getenv("ANTHROPIC_API_KEY")
 
@@ -137,23 +147,23 @@ def get_tools() -> list[dict]:
                 "required": ["file_path", "content"],
             },
         },
-        {
-            "name": TOOL_NAME.RUN_LIMITED_SHELL_COMMAND,
-            "description": (
-                "Run a limited shell command. Invoke it when user asks to run a shell command. Only a limited"
-                f" set of safe commands are allowed ({', '.join(ALLOWED_COMMANDS)})."
-            ),
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "command": {
-                        "type": "string",
-                        "description": "The shell command to run.",
-                    }
-                },
-                "required": ["command"],
-            },
-        },
+        # {
+        #     "name": TOOL_NAME.RUN_LIMITED_SHELL_COMMAND,
+        #     "description": (
+        #         "Run a limited shell command. Invoke it when user asks to run a shell command. Only a limited"
+        #         f" set of safe commands are allowed ({', '.join(ALLOWED_COMMANDS)})."
+        #     ),
+        #     "input_schema": {
+        #         "type": "object",
+        #         "properties": {
+        #             "command": {
+        #                 "type": "string",
+        #                 "description": "The shell command to run.",
+        #             }
+        #         },
+        #         "required": ["command"],
+        #     },
+        # },
         {
             "name": TOOL_NAME.STRING_REPLACE,
             "description": (
@@ -202,6 +212,7 @@ def is_tool_available(tool_name: TOOL_NAME) -> bool:
     return tool_name in tool_map
 
 
+@observe(name="execute_tool")
 def execute_tool(tool_name: TOOL_NAME, tool_input: dict) -> dict:
     print(f"Executing tool: {tool_name} with input: {tool_input}")
     func = tool_map.get(tool_name)
@@ -210,6 +221,7 @@ def execute_tool(tool_name: TOOL_NAME, tool_input: dict) -> dict:
     return func(tool_input)
 
 
+@observe(name="run_agent")
 def run_agent(user_message: str, max_iteration: int = DEFAULT_MAX_ITERATION) -> Usage:
     cumulative_usages = EMPTY_USAGE
     messages = [{"role": "user", "content": user_message}]
@@ -285,5 +297,6 @@ def run_agent(user_message: str, max_iteration: int = DEFAULT_MAX_ITERATION) -> 
 
 
 if __name__ == "__main__":
-    cumulative_usages = run_agent('把 test_replace.py 里的Hello改成"Hi')
+    cumulative_usages = run_agent("列一下sandbox下面的文件")
     print_usage(cumulative_usages)
+    langfuse_client.flush()
