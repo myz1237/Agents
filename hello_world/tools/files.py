@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 
 from consts import SANDBOX_DIR, SANDBOX_PATH, TOOL_NAME
@@ -212,3 +213,57 @@ def str_replace(tool_input: dict) -> dict:
         )
     except Exception as e:
         return err(f"Error writing to file during string replacement: {e}")
+
+
+def code_search(tool_input: dict) -> dict:
+    pattern: str = tool_input.get("pattern", "")
+    file_pattern: str = tool_input.get("file_pattern", "")
+    max_results: int = tool_input.get("max_results", 50)
+
+    if pattern.strip() == "":
+        return err("Search pattern is empty, please provide a valid text or regex pattern to search.")
+
+    cmd = [
+        "rg",
+        "--max-count",
+        "10",
+        "--max-columns",
+        "200",  # Max 200 chars per line to prevent OOM, adjust as needed
+        "--line-number",
+        "--no-heading",  # No grouping by file, each match has its file name
+        "--color",
+        "never",
+    ]
+
+    if file_pattern:
+        cmd.extend(["--glob", file_pattern])
+
+    cmd.append(pattern)
+    cmd.append(str(SANDBOX_PATH))
+
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=SANDBOX_DIR,
+        )
+    except subprocess.TimeoutExpired:
+        return err("Search timed out.")
+    except Exception as e:
+        return err(f"Error occurred while searching: {e}")
+
+    # rg returns 0 if matches found, 1 if no matches, and 2 for errors
+    if result.returncode == 1:
+        return err("No matches found.")
+    if result.returncode not in (0, 1):  # rg returns 1 if no matches found
+        return err(f"Search failed with error: {result.stderr.strip()}")
+
+    strip_result = result.stdout.strip()
+    lines = strip_result.split("\n")
+    if len(lines) > max_results:
+        lines = lines[:max_results]
+        lines.append(f"...and {len(lines) - max_results} more results.")
+    output = strip_result.replace(str(SANDBOX_PATH) + "/", "")  # Remove sandbox path prefix for safety
+    return ok(output)

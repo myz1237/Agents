@@ -165,4 +165,28 @@ tools: list[dict] = [
             "required": ["path", "old_str", "new_str"],
         },
     },
+    {
+        "name": TOOL_NAME.SEARCH_CODE,
+        "description": (
+            "Search for text or regex patterns across files in the sandbox using ripgrep. "
+            "Returns matching file names, line numbers, and content. "
+            "Much faster than reading files one by one. "
+            "Use this for code exploration, finding function definitions, tracking usages, etc."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "pattern": {
+                    "type": "string",
+                    "description": "Text or regex to search, e.g. 'def reverse' or 'import\\s+\\w+'",
+                },
+                "file_pattern": {
+                    "type": "string",
+                    "description": "Glob filter for filenames, e.g. '*.py' for Python files only. Empty = all files.",
+                },
+                "max_results": {"type": "integer", "description": "Max number of matches to return. Default 50."},
+            },
+            "required": ["pattern"],
+        },
+    },
 ]

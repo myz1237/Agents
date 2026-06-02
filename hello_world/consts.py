@@ -14,6 +14,7 @@ class TOOL_NAME(StrEnum):
     WRITE_FILE_IN_SANDBOX = "write_file_in_sandbox"
     RUN_LIMITED_SHELL_COMMAND = "run_limited_shell_command"
     STRING_REPLACE = "string_replace"
+    SEARCH_CODE = "search_code"
 
 
 DEFAULT_MAX_ITERATION = 100

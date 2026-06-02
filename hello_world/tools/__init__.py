@@ -13,7 +13,7 @@ from consts import TOOL_NAME
 
 from .calcualtion_eval import calculator
 from .descriptions import tools
-from .files import list_directory, read_file_in_sandbox, str_replace, write_file_in_sandbox
+from .files import code_search, list_directory, read_file_in_sandbox, str_replace, write_file_in_sandbox
 from .shell import run_shell_in_sandbox
 from .times import get_current_time, time_offset
 
@@ -27,6 +27,7 @@ tool_map = {
     TOOL_NAME.WRITE_FILE_IN_SANDBOX: write_file_in_sandbox,
     TOOL_NAME.RUN_LIMITED_SHELL_COMMAND: run_shell_in_sandbox,
     TOOL_NAME.STRING_REPLACE: str_replace,
+    TOOL_NAME.SEARCH_CODE: code_search,
 }
 
 # Controls what `from tools import *` exposes — only the map, nothing else.
