@@ -8,6 +8,8 @@ dependencies = [
     "anthropic>=0.105.2",
     "datetime>=6.0",
     "dotenv>=0.9.9",
+    "langfuse>=4.7.1",
+    "opentelemetry-instrumentation-anthropic>=0.61.0",
 ]
 
 [dependency-groups]
