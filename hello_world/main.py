@@ -8,7 +8,7 @@ from langfuse import get_client, observe, propagate_attributes
 from opentelemetry.instrumentation.anthropic import AnthropicInstrumentor
 
 from consts import DEFAULT_MAX_ITERATION, EMPTY_USAGE, SYSTEM_PROMPT_WITH_CACHE, TOOL_NAME
-from tools import tool_map, tools
+from tools import TOOL_MAP, WRITE_PREVIEW_MAP, tools
 from utils import err, print_usage, usage_add
 
 load_dotenv()
@@ -44,13 +44,38 @@ def hello_world() -> None:
 
 
 def is_tool_available(tool_name: TOOL_NAME) -> bool:
-    return tool_name in tool_map
+    return tool_name in TOOL_MAP
+
+
+def is_write_preview_tool(tool_name: TOOL_NAME) -> bool:
+    return tool_name in WRITE_PREVIEW_MAP
+
+
+def confirm_write(preview_result: str) -> str:
+    print(f"\n{'=' * 60}")
+    print("⚠️  Agent requests file writes:")
+    print(f"{'─' * 60}")
+    print(preview_result)
+    print(f"{'=' * 60}")
+
+    answer = input("Confirm to execute? [y]es / [n]o / [a]lways(No further ask in this session): ").strip().lower()
+    return answer
+
+
+# Only for LLM, not real LLM Tool Execution
+# Give more insights to users when modification happens
+def execute_preview_tool(tool_name: TOOL_NAME, tool_input: dict) -> dict:
+    print(f"Executing preview tool: {tool_name} with input: {tool_input}")
+    func = WRITE_PREVIEW_MAP.get(tool_name)
+    if not func:
+        return err(f"Unknown preview tool: {tool_name!r}")
+    return func(tool_input)
 
 
 @observe(name="execute_tool")
 def execute_tool(tool_name: TOOL_NAME, tool_input: dict) -> dict:
     print(f"Executing tool: {tool_name} with input: {tool_input}")
-    func = tool_map.get(tool_name)
+    func = TOOL_MAP.get(tool_name)
     if not func:
         return err(f"Unknown tool: {tool_name!r}")
     return func(tool_input)
@@ -64,6 +89,7 @@ def run_agent(
 ) -> Usage:
     cumulative_usages = EMPTY_USAGE
     messages = [{"role": "user", "content": user_message}]
+    auto_approve: bool = False  # Only used for write tools
     # Add session id for Langfuse to group one chat in the same session together.
     with propagate_attributes(session_id=session_id):
         for i in range(max_iteration):
@@ -102,8 +128,9 @@ def run_agent(
                 tool_results = []
                 for block in response.content:
                     if block.type == "tool_use":
-                        if not is_tool_available(block.name):
-                            print(f"Tool {block.name} is not available. Skipping.")
+                        tool_name = block.name
+                        if not is_tool_available(tool_name):
+                            print(f"Tool {tool_name} is not available. Skipping.")
                             tool_results.append(
                                 {
                                     "type": "tool_result",
@@ -113,9 +140,43 @@ def run_agent(
                                     "is_error": True,
                                 }
                             )
+                            continue
                         else:
-                            print(f"Invoking tool: {block.name}")
-                            tool_result = execute_tool(block.name, block.input)
+                            if is_write_preview_tool(tool_name) and not auto_approve:
+                                print(f"Invoking preview tool: {tool_name}")
+                                preview_tool_result = execute_preview_tool(tool_name, block.input)
+                                # tool error
+                                if preview_tool_result["is_error"]:
+                                    tool_results.append(
+                                        {
+                                            "type": "tool_result",
+                                            "tool_use_id": block.id,
+                                            "content": f"{tool_name} preview failed, please try it again.",
+                                            "is_error": True,
+                                        }
+                                    )
+                                    continue
+                                else:
+                                    # Gather user's response
+                                    answer = confirm_write(preview_tool_result["content"])
+                                    if answer in ("a", "always"):
+                                        auto_approve = True
+                                    elif answer not in ("y", "yes", ""):
+                                        tool_results.append(
+                                            {
+                                                "type": "tool_result",
+                                                "tool_use_id": block.id,
+                                                "content": (
+                                                    "User has denied this request, "
+                                                    "please do not try again and ask user how to adjust."
+                                                ),
+                                                "is_error": True,
+                                            }
+                                        )
+                                        continue
+
+                            print(f"Invoking tool: {tool_name}")
+                            tool_result = execute_tool(tool_name, block.input)
                             print(f"Tool result: {tool_result}")
                             # Append the tool result to the messages so that the model can see
                             # the result in the next iteration
@@ -139,7 +200,7 @@ def run_agent(
 
 if __name__ == "__main__":
     session_id = str(uuid.uuid4())
-    start_message = "帮我在mini-project里面找一下所有的函数?"
+    start_message = "把 test_replace.py 里的 hello 改成 hi"
     cumulative_usages = run_agent(start_message, session_id)
     print_usage(cumulative_usages)
     langfuse_client.flush()

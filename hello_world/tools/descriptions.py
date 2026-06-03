@@ -64,7 +64,7 @@ tools: list[dict] = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "file_path": {
+                "path": {
                     "type": "string",
                     "description": "The absolute or relative path to the file to read.",
                 },
@@ -81,7 +81,7 @@ tools: list[dict] = [
                     "description": "The maximum number of lines to read from the file. Default is 500.",
                 },
             },
-            "required": ["file_path"],
+            "required": ["path"],
         },
     },
     {
@@ -104,7 +104,7 @@ tools: list[dict] = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "file_path": {
+                "path": {
                     "type": "string",
                     "description": "The absolute or relative path to the file to write.",
                 },
@@ -113,7 +113,7 @@ tools: list[dict] = [
                     "description": "The content to write to the file.",
                 },
             },
-            "required": ["file_path", "content"],
+            "required": ["path", "content"],
         },
     },
     # {

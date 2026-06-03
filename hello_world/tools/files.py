@@ -2,14 +2,10 @@ import subprocess
 from pathlib import Path
 
 from consts import SANDBOX_DIR, SANDBOX_PATH, TOOL_NAME
-from utils import err, ok
+from utils import err, file_path_checker, get_relative_path, get_safe_path, ok, pure_file_path_checker
 
 
-def get_relative_path(path: Path, relative_to: Path) -> Path:
-    return path.resolve().relative_to(relative_to.resolve())
-
-
-def get_previews(content: str, target_str: str) -> list:
+def get_occurrence_previews(content: str, target_str: str) -> list:
     if not target_str:
         return []
 
@@ -29,34 +25,6 @@ def get_previews(content: str, target_str: str) -> list:
         # matching str.count()/content.count(target_str).
         start = index + len(target_str)
     return previews
-
-
-def get_safe_path(user_input_path: str) -> Path:
-    abs_sandbox_path = Path(SANDBOX_DIR).resolve()
-    abs_target_path = abs_sandbox_path.joinpath(user_input_path).resolve()
-    if not abs_target_path.is_relative_to(abs_sandbox_path):
-        raise ValueError("Path traversal detected, please provide a path within the sandbox directory.")
-    return abs_target_path
-
-
-def file_path_checker(user_input_path: str) -> dict:
-    try:
-        safe_path = get_safe_path(user_input_path)
-    except ValueError as e:
-        return err(str(e))
-
-    if not safe_path.exists():
-        return err(f"File not found: {user_input_path}")
-    if not safe_path.is_file():
-        return err(f"Not a file: {user_input_path}")
-    return ok(safe_path)
-
-
-def pure_file_path_checker(user_input_path: str) -> dict:
-    try:
-        return ok(get_safe_path(user_input_path))
-    except ValueError as e:
-        return err(str(e))
 
 
 def read_file_as_string(file_path: Path) -> dict:
@@ -90,7 +58,7 @@ def folder_path_checker(user_input_path: str) -> dict:
 
 
 def read_file_in_sandbox(tool_input: dict) -> dict:
-    file_path: str | None = tool_input.get("file_path")
+    file_path: str | None = tool_input.get("path")
     max_lines: int = tool_input.get("max_lines", 500)
     start_line: int | None = tool_input.get("start_line")  # 1-indexed, optional
     end_line: int | None = tool_input.get("end_line")  # 1-indexed, optional
@@ -130,6 +98,7 @@ def read_file_in_sandbox(tool_input: dict) -> dict:
         return err(f"end_line ({end_line}) must be >= start_line ({start_line}).")
 
     sliced = lines[start_line - 1 : end_line]
+    # Add line number for LLM to replace lines easier
     lined_contents = "\n".join(f"{n + start_line}: {line}" for n, line in enumerate(sliced))
     return ok(f"Lines {start_line}-{end_line} of {total}:\n{lined_contents}")
 
@@ -154,7 +123,7 @@ def list_directory(tool_input: dict) -> dict:
 
 
 def write_file_in_sandbox(tool_input: dict) -> dict:
-    file_path: str = tool_input.get("file_path")
+    file_path: str = tool_input.get("path")
     content: str = tool_input.get("content", "")
 
     if content.strip() == "":
@@ -217,7 +186,7 @@ def str_replace(tool_input: dict) -> dict:
         )
 
     if occurrences > 1 and not replace_all:
-        previews = get_previews(content, old_substr)
+        previews = get_occurrence_previews(content, old_substr)
         preview_text = "\n".join(previews[:5])  # Show up to 5 previews
         return err(
             f"Found {occurrences} occurrences of the string to be replaced in {relative_path}. "

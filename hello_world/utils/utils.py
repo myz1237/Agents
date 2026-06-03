@@ -1,4 +1,8 @@
+from pathlib import Path
+
 from anthropic.types import Usage
+
+from consts import SANDBOX_DIR
 
 
 def ok(content) -> dict:
@@ -50,3 +54,35 @@ def print_usage(usage: Usage) -> None:
     if usage.cache_creation is not None:
         print(f"Cache creation ephemeral 5m input tokens: {usage.cache_creation.ephemeral_5m_input_tokens}")
         print(f"Cache creation ephemeral 1h input tokens: {usage.cache_creation.ephemeral_1h_input_tokens}")
+
+
+def get_relative_path(path: Path, relative_to: Path) -> Path:
+    return path.resolve().relative_to(relative_to.resolve())
+
+
+def get_safe_path(user_input_path: str) -> Path:
+    abs_sandbox_path = Path(SANDBOX_DIR).resolve()
+    abs_target_path = abs_sandbox_path.joinpath(user_input_path).resolve()
+    if not abs_target_path.is_relative_to(abs_sandbox_path):
+        raise ValueError("Path traversal detected, please provide a path within the sandbox directory.")
+    return abs_target_path
+
+
+def pure_file_path_checker(user_input_path: str) -> dict:
+    try:
+        return ok(get_safe_path(user_input_path))
+    except ValueError as e:
+        return err(str(e))
+
+
+def file_path_checker(user_input_path: str) -> dict:
+    try:
+        safe_path = get_safe_path(user_input_path)
+    except ValueError as e:
+        return err(str(e))
+
+    if not safe_path.exists():
+        return err(f"File not found: {user_input_path}")
+    if not safe_path.is_file():
+        return err(f"Not a file: {user_input_path}")
+    return ok(safe_path)

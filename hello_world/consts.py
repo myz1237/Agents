@@ -6,15 +6,27 @@ from anthropic.types import Usage
 
 
 class TOOL_NAME(StrEnum):
+    # Write tools (require preview + user approval before execution)
+    WRITE_FILE_IN_SANDBOX = "write_file_in_sandbox"
+    STRING_REPLACE = "string_replace"
+    # Read-only / side-effect-free tools
     GET_CURRENT_TIME = "get_current_time"
     CALCULATE = "calculate"
     TIME_OFFSET = "time_offset"
     READ_FILE_IN_SANDBOX = "read_file_in_sandbox"
     LIST_DIRECTORY = "list_directory"
-    WRITE_FILE_IN_SANDBOX = "write_file_in_sandbox"
     RUN_LIMITED_SHELL_COMMAND = "run_limited_shell_command"
-    STRING_REPLACE = "string_replace"
     SEARCH_CODE = "search_code"
+
+
+# Subset of TOOL_NAME that mutates the sandbox, so callers can gate them
+# behind a preview + approval step. Frozen because it's a fixed constant.
+WRITE_TOOL_NAMES = frozenset(
+    {
+        TOOL_NAME.WRITE_FILE_IN_SANDBOX,
+        TOOL_NAME.STRING_REPLACE,
+    }
+)
 
 
 DEFAULT_MAX_ITERATION = 100
