@@ -2,27 +2,27 @@
 The descriptions and input schemas are used by the agent to decide when and how to use the tools.
 """
 
-from consts import TOOL_NAME
+from consts import ALLOWED_COMMANDS, TOOL_NAME
 
 tools: list[dict] = [
-    # {
-    #     "name": TOOL_NAME.GET_CURRENT_TIME,
-    #     "description": ("Get the current time. Invoke it when user asks for the current time."),
-    #     "input_schema": {
-    #         "type": "object",
-    #         "properties": {
-    #             "timezone": {
-    #                 "type": "string",
-    #                 "description": (
-    #                     "The timezone to get the current time for, as an "
-    #                     "IANA name like 'Asia/Shanghai' or 'UTC'. "
-    #                     "Default is Asia/Shanghai (UTC+8)."
-    #                 ),
-    #             }
-    #         },
-    #         "required": [],
-    #     },
-    # },
+    {
+        "name": TOOL_NAME.GET_CURRENT_TIME,
+        "description": ("Get the current time. Invoke it when user asks for the current time."),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "timezone": {
+                    "type": "string",
+                    "description": (
+                        "The timezone to get the current time for, as an "
+                        "IANA name like 'Asia/Shanghai' or 'UTC'. "
+                        "Default is Asia/Shanghai (UTC+8)."
+                    ),
+                }
+            },
+            "required": [],
+        },
+    },
     # {
     #     "name": TOOL_NAME.CALCULATE,
     #     "description": (
@@ -40,24 +40,24 @@ tools: list[dict] = [
     #         "required": ["expression"],
     #     },
     # },
-    # {
-    #     "name": TOOL_NAME.TIME_OFFSET,
-    #     "description": "Calculate a time offset. Invoke it when user asks to calculate a time offset.",
-    #     "input_schema": {
-    #         "type": "object",
-    #         "properties": {
-    #             "base_time": {
-    #                 "type": "string",
-    #                 "description": "The base time, in ISO format, e.g., '2026-05-29 23:30:24'",
-    #             },
-    #             "offset_seconds": {
-    #                 "type": "integer",
-    #                 "description": "The offset in seconds, positive for later, negative for earlier",
-    #             },
-    #         },
-    #         "required": ["base_time", "offset_seconds"],
-    #     },
-    # },
+    {
+        "name": TOOL_NAME.TIME_OFFSET,
+        "description": "Calculate a time offset. Invoke it when user asks to calculate a time offset.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "base_time": {
+                    "type": "string",
+                    "description": "The base time, in ISO format, e.g., '2026-05-29 23:30:24'",
+                },
+                "offset_seconds": {
+                    "type": "integer",
+                    "description": "The offset in seconds, positive for later, negative for earlier",
+                },
+            },
+            "required": ["base_time", "offset_seconds"],
+        },
+    },
     {
         "name": TOOL_NAME.READ_FILE_IN_SANDBOX,
         "description": "Read the contents of a file. Invoke it when user asks to read a file.",
@@ -116,23 +116,23 @@ tools: list[dict] = [
             "required": ["path", "content"],
         },
     },
-    # {
-    #     "name": TOOL_NAME.RUN_LIMITED_SHELL_COMMAND,
-    #     "description": (
-    #         "Run a limited shell command. Invoke it when user asks to run a shell command. Only a limited"
-    #         f" set of safe commands are allowed ({', '.join(ALLOWED_COMMANDS)})."
-    #     ),
-    #     "input_schema": {
-    #         "type": "object",
-    #         "properties": {
-    #             "command": {
-    #                 "type": "string",
-    #                 "description": "The shell command to run.",
-    #             }
-    #         },
-    #         "required": ["command"],
-    #     },
-    # },
+    {
+        "name": TOOL_NAME.RUN_LIMITED_SHELL_COMMAND,
+        "description": (
+            "Run a limited shell command. Invoke it when user asks to run a shell command. Only a limited "
+            f"set of safe commands are allowed ({', '.join(ALLOWED_COMMANDS)})."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "command": {
+                    "type": "string",
+                    "description": "The shell command to run.",
+                }
+            },
+            "required": ["command"],
+        },
+    },
     {
         "name": TOOL_NAME.STRING_REPLACE,
         "description": (
