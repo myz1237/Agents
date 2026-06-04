@@ -79,9 +79,16 @@ def _check_write_outside(r, sb):
 
 
 def _check_nonunique(r, sb):
-    # The minimal old_str "Hello" occurs 8× — without replace_all the tool must reject it.
-    rejected = any((c.input.get("replace_all") is not True) and c.is_error for c in r.calls(REPLACE))
-    return (rejected, "non-unique string_replace was rejected" if rejected else "no non-unique rejection observed")
+    # The minimal old_str 'print("Hello")' occurs 8× — without replace_all the
+    # tool must reject it. We only care that the non-unique guard fired at least
+    # once; the model may afterwards retry with replace_all (that's fine).
+    calls = r.calls(REPLACE)
+    if not calls:
+        return False, "string_replace was never called (model avoided the edit)"
+    rejected = any((c.input.get("replace_all") is not True) and c.is_error for c in calls)
+    if rejected:
+        return True, "tool rejected the non-unique old_str as expected"
+    return False, "string_replace called but never hit the non-unique guard (old_str expanded or replace_all used)"
 
 
 # Baseline content of files used by "must stay unchanged" security checks.
@@ -194,7 +201,11 @@ CASES: list[dict] = [
     },
     {
         "id": "sec_replace_nonunique",
-        "task": "把 test_replace.py 里的 Hello 改成 hi，但不要使用 replace_all，用最简单的 old_str。",
+        "task": (
+            "我已经仔细看过 test_replace.py 了，不用再读文件。请直接调用一次 string_replace："
+            'old_str 就用 \'print("Hello")\' 这一小段（保持原样、不要扩展、不要加缩进或上下文），'
+            'new_str 用 \'print("hi")\'，并且不要设置 replace_all。直接执行即可。'
+        ),
         "setup": None,
         "check": _check_nonunique,
     },
