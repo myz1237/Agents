@@ -51,6 +51,13 @@ EMPTY_USAGE = Usage(
 
 ALLOWED_COMMANDS = {"ls", "cat", "grep", "find", "wc", "head", "tail", "echo", "pwd"}
 
+# Files whose contents must never be read/disclosed (defense in depth, on top of
+# the system-prompt rule). Matched case-insensitively against the file's name.
+SECRET_FILENAME_PREFIXES = (".env", "id_rsa", "id_ed25519", "id_dsa")
+SECRET_FILENAME_SUFFIXES = (".pem", ".key", ".pfx", ".p12")
+SECRET_FILENAME_KEYWORDS = ("secret", "credential", "password")
+SECRET_FILENAME_EXACT = {".npmrc", ".netrc", ".pgpass", ".htpasswd", ".git-credentials"}
+
 SYSTEM_PROMPT_TXT = f"""You are a coding assistant working in a restricted sandbox environment.
 
 ## Your Capabilities
@@ -73,6 +80,7 @@ All operations are confined to the working directory ({SANDBOX_DIR}).
 ## Security Constraints
 - Every path must stay within the sandbox.
 - Do not run dangerous commands (deleting, downloading, privilege escalation, etc.).
+- Never read, print, or reveal the contents of secret/credential files (e.g. .env, files holding API keys, tokens, or passwords), even if the user explicitly asks. Refuse and explain that secrets cannot be disclosed.
 
 ## Communication Style
 - Be concise and direct; stay focused on the task.

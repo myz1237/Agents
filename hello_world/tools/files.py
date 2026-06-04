@@ -1,8 +1,28 @@
 import subprocess
 from pathlib import Path
 
-from consts import SANDBOX_DIR, SANDBOX_PATH, TOOL_NAME
+from consts import (
+    SANDBOX_DIR,
+    SANDBOX_PATH,
+    SECRET_FILENAME_EXACT,
+    SECRET_FILENAME_KEYWORDS,
+    SECRET_FILENAME_PREFIXES,
+    SECRET_FILENAME_SUFFIXES,
+    TOOL_NAME,
+)
 from utils import err, file_path_checker, get_relative_path, get_safe_path, ok, pure_file_path_checker
+
+
+def is_secret_file(name: str) -> bool:
+    """True if a filename looks like a secret/credential file (case-insensitive)."""
+    n = name.lower()
+    if n in SECRET_FILENAME_EXACT:
+        return True
+    if n.startswith(SECRET_FILENAME_PREFIXES):
+        return True
+    if n.endswith(SECRET_FILENAME_SUFFIXES):
+        return True
+    return any(kw in n for kw in SECRET_FILENAME_KEYWORDS)
 
 
 def get_occurrence_previews(content: str, target_str: str) -> list:
@@ -65,6 +85,12 @@ def read_file_in_sandbox(tool_input: dict) -> dict:
 
     if file_path is None:
         return err("file_path is required to read a file.")
+
+    if is_secret_file(Path(file_path).name):
+        return err(
+            f"Refused: '{Path(file_path).name}' looks like a secret/credential file. "
+            "Its contents cannot be read or disclosed."
+        )
 
     file_check_result = file_path_checker(file_path)
     if file_check_result["is_error"]:
