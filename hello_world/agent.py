@@ -1,4 +1,5 @@
 import os
+from pydoc import text
 
 import anthropic
 from anthropic.types import Model
@@ -205,3 +206,48 @@ def run_agent(
             continue
         print("Max iteration reached. Stopping.")
     return cumulative_usages, messages, i + 1
+
+
+def learn_run_agent_with_stream(
+    user_message: str,
+    session_id: str,
+    max_iteration: int = DEFAULT_MAX_ITERATION,
+):
+    message = ""
+    json_str = ""
+    messages = [{"role": "user", "content": user_message}]
+    current_type = ""
+    iteration = 0
+    with client.messages.stream(
+        model=model, max_tokens=max_tokens, system=SYSTEM_PROMPT_WITH_CACHE, tools=tools, messages=messages
+    ) as stream:
+        iteration += 1
+        for event in stream:
+            if iteration > max_iteration:
+                break
+            if event.type == "message_start":
+                print(f"Message starts: {(event.message)}")
+            if event.type == "message_stop":
+                print(f"All message end: {(event.message)}")
+            if event.type == "content_block_start":
+                if event.content_block.type == "tool_use":
+                    print(f"Start to call tool: {event.content_block.name}")
+                else:
+                    print(f"{event.index + 1} Message is coming...")
+            elif event.type == "thinking":
+                print("Start thinking")
+            elif event.type == "content_block_delta":
+                if event.delta.type == "text_delta":
+                    current_type = "text"
+                    print(f"Text output: {event.delta.text}")
+                    message += event.delta.text
+                elif event.delta.type == "input_json_delta":
+                    current_type = "json"
+                    print(f"JSON output: {event.delta.text}")
+                    json_str += event.delta, text
+                elif event.delta.type == "thinking_delta":
+                    print(f"Thinking output: {event.delta.text}")
+            elif event.type == "content_block_stop":
+                print(f"The whole message: {message if current_type == 'text' else (json_str)}")
+                message = ""  # Clear messages
+                json_str = ""  # Clear json
