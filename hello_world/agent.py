@@ -82,10 +82,17 @@ def execute_tool(tool_name: TOOL_NAME, tool_input: dict) -> dict:
 
 @observe(name="run_agent")
 def run_agent(
-    user_message: str, session_id: str, max_iteration: int = DEFAULT_MAX_ITERATION, eval_mode: bool = False
+    user_message: str,
+    session_id: str,
+    max_iteration: int = DEFAULT_MAX_ITERATION,
+    eval_mode: bool = False,
+    history: list | None = None,
 ) -> tuple:
     cumulative_usages = EMPTY_USAGE
-    messages = [{"role": "user", "content": user_message}]
+    # The caller owns the history list (e.g. the API's session store); new
+    # turns are appended to it in place, so the next call sees the full chat.
+    messages = history if history is not None else []
+    messages.append({"role": "user", "content": user_message})
     auto_approve = False  # Only used for write tools
     # Add session id for Langfuse to group one chat in the same session together.
     with propagate_attributes(session_id=session_id):
@@ -108,7 +115,7 @@ def run_agent(
 
             if stop_reason == "max_tokens":
                 print("Model has run out of max tokens. Stopping.")
-                return cumulative_usages, messages
+                return cumulative_usages, messages, i + 1
 
             if stop_reason == "end_turn":
                 for block in response.content:
@@ -117,11 +124,11 @@ def run_agent(
                 # In eval mode there is no interactive user: stop as soon as the
                 # agent finishes a turn instead of blocking on input().
                 if eval_mode:
-                    return cumulative_usages, messages
+                    return cumulative_usages, messages, i + 1
                 user_input = input("Enter user message (or 'exit' to quit): ")
                 if not user_input.strip() or user_input.lower() == "exit":
                     print("Exiting.")
-                    return cumulative_usages, messages
+                    return cumulative_usages, messages, i + 1
                 messages.append({"role": "user", "content": user_input})
                 continue
 
@@ -197,4 +204,4 @@ def run_agent(
             print(f"Unknown stop reason. Stopping. {stop_reason}")
             continue
         print("Max iteration reached. Stopping.")
-    return cumulative_usages, messages
+    return cumulative_usages, messages, i + 1

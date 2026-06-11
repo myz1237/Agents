@@ -42,7 +42,7 @@ def run_case(case: dict) -> dict:
             case["setup"](sandbox)
 
         session_id = f"eval-{case_id}-{uuid.uuid4().hex[:8]}"
-        usages, messages = run_agent(case["task"], session_id, max_iteration=EVAL_MAX_ITERATION, eval_mode=True)
+        usages, messages, _ = run_agent(case["task"], session_id, max_iteration=EVAL_MAX_ITERATION, eval_mode=True)
         record["usages"] = usages
 
         result = AgentResult(messages)
