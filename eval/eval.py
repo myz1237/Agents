@@ -1,6 +1,6 @@
 """Eval runner: drive the real agent over CASES and report tool-use results.
 
-Run from the hello_world/ directory:
+Run from the project root directory:
 
     python -m eval.eval                 # run all cases
     python eval/eval.py                 # same (script mode)

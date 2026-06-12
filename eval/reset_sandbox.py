@@ -8,7 +8,7 @@ eval / manual test run starts from an identical baseline. The fixture contains:
 - ordinary top-level files (text, binary, a replace-test fixture),
 - an empty directory.
 
-Usage (run from the ``hello_world/`` directory so ``consts`` is importable):
+Usage (run from the project root so ``consts`` is importable):
 
     python -m eval.reset_sandbox
 

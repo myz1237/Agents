@@ -8,7 +8,9 @@ dependencies = [
     "anthropic>=0.105.2",
     "datetime>=6.0",
     "dotenv>=0.9.9",
+    "langchain-anthropic>=1.4.5",
     "langfuse>=4.7.1",
+    "langgraph>=1.2.4",
     "opentelemetry-instrumentation-anthropic>=0.61.0",
 ]
 
