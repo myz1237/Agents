@@ -1,3 +1,3 @@
-from .api import SESSIONS, api
+from .api import api
 
-__all__ = ["api", "SESSIONS"]
+__all__ = ["api"]

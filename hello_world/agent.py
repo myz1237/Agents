@@ -1,5 +1,5 @@
+import json
 import os
-from pydoc import text
 
 import anthropic
 from anthropic.types import Model
@@ -8,6 +8,7 @@ from langfuse import get_client, observe, propagate_attributes
 from opentelemetry.instrumentation.anthropic import AnthropicInstrumentor
 
 from consts import DEFAULT_MAX_ITERATION, EMPTY_USAGE, SYSTEM_PROMPT_WITH_CACHE, TOOL_NAME
+from sessions import SESSIONS
 from tools import TOOL_MAP, WRITE_PREVIEW_MAP, tools
 from utils import err, usage_add
 
@@ -243,11 +244,82 @@ def learn_run_agent_with_stream(
                     message += event.delta.text
                 elif event.delta.type == "input_json_delta":
                     current_type = "json"
-                    print(f"JSON output: {event.delta.text}")
-                    json_str += event.delta, text
+                    print(f"JSON output: {event.delta.partial_json}")
+                    json_str += event.delta.partial_json
                 elif event.delta.type == "thinking_delta":
-                    print(f"Thinking output: {event.delta.text}")
+                    print(f"Thinking output: {event.delta.thinking}")
             elif event.type == "content_block_stop":
                 print(f"The whole message: {message if current_type == 'text' else (json_str)}")
                 message = ""  # Clear messages
                 json_str = ""  # Clear json
+
+
+def agent_stream_generator(user_message: str, session_id: str, max_iteration: int = DEFAULT_MAX_ITERATION):
+    messages = SESSIONS.get(session_id, [])
+    messages.append({"role": "user", "content": user_message})
+
+    for i in range(max_iteration):
+        print(f"Iteration {i + 1}")
+        with client.messages.stream(
+            model=model, max_tokens=max_tokens, system=SYSTEM_PROMPT_WITH_CACHE, tools=tools, messages=messages
+        ) as stream:
+            # Only for stream requests. Text arrives piece by piece on
+            # content_block_delta events; content_block_start only tells us a
+            # block (e.g. a tool call) is beginning.
+            for event in stream:
+                if event.type == "content_block_start" and event.content_block.type == "tool_use":
+                    yield f"data: {json.dumps({'type': 'tool_call', 'name': event.content_block.name})}\n\n"
+                elif event.type == "content_block_delta" and event.delta.type == "text_delta":
+                    yield f"data: {json.dumps({'type': 'text', 'content': event.delta.text})}\n\n"
+            # Same to normal chat mode
+            final_message = stream.get_final_message()
+
+        messages.append({"role": "assistant", "content": final_message.content})
+        stop_reason = final_message.stop_reason
+
+        if stop_reason == "max_tokens":
+            print("Model has run out of max tokens. Stopping.")
+            yield f"data: {json.dumps({'type': 'error', 'content': 'Max token reached'})}\n\n"
+            break
+
+        if stop_reason == "end_turn":
+            # The text was already streamed delta-by-delta above; emitting
+            # final_message.content again would send the answer twice.
+            break  # Jump out of the loop and return end data
+        if stop_reason == "tool_use":
+            tool_results = []
+            for block in final_message.content:
+                if block.type == "tool_use":
+                    tool_name = block.name
+                    if not is_tool_available(tool_name):
+                        print(f"Tool {tool_name} is not available. Skipping.")
+                        tool_results.append(
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": block.id,
+                                # Do not return any tool information here, otherwise users would see it
+                                "content": "Tool is not available.",
+                                "is_error": True,
+                            }
+                        )
+                        continue
+                    else:
+                        print(f"Invoking tool: {tool_name}")
+                        tool_result = execute_tool(tool_name, block.input)
+                        print(f"Tool result: {tool_result}")
+                        # Append the tool result to the messages so that the model can see
+                        # the result in the next iteration
+                        tool_results.append(
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": block.id,
+                                "content": tool_result.get("content"),
+                                "is_error": tool_result.get("is_error"),
+                            }
+                        )
+                        continue
+
+            messages.append({"role": "user", "content": tool_results})
+            continue
+    SESSIONS[session_id] = messages
+    yield f"data: {json.dumps({'type': 'done', 'session_id': session_id})}\n\n"

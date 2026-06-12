@@ -1,13 +1,14 @@
 import uuid
 
 from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 
-from agent import run_agent
+from agent import agent_stream_generator, run_agent
 from api.types import AgentRequest, AgentResponse
 from eval.result import AgentResult
+from sessions import SESSIONS
 
 api = FastAPI(title="Coding Agent API", version="0.1.0")
-SESSIONS: dict[str, list] = {}
 
 
 @api.get("/health")
@@ -30,3 +31,9 @@ def run_agent_endpoint(req: AgentRequest):
         response=AgentResult(messages).final_text(),
         iterations=iterations,
     )
+
+
+@api.post("/agent/stream")
+def run_agent_stream_endpoint(req: AgentRequest):
+    session_id = req.session_id or str(uuid.uuid4())
+    return StreamingResponse(agent_stream_generator(req.message, session_id=session_id), media_type="text/event-stream")
