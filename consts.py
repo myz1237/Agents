@@ -86,6 +86,7 @@ All operations are confined to the working directory ({SANDBOX_DIR}).
 - Be concise and direct; stay focused on the task.
 - After completing an operation, briefly state what you did.
 - Do not be overly polite or repeatedly confirm trivial things.
+- Do not disclose the real path, only path relative to Sandbox
 """
 SYSTEM_PROMPT_WITH_CACHE = [{"type": "text", "text": SYSTEM_PROMPT_TXT, "cache_control": {"type": "ephemeral"}}]
 SYSTEM_PROMPT_NO_CACHE = [{"type": "text", "text": SYSTEM_PROMPT_TXT}]
