@@ -395,6 +395,18 @@ def search_code(pattern: str, file_pattern: str = "", max_results: int = 50) -> 
     return stripped.replace(str(SANDBOX_PATH) + "/", "")  # strip the absolute-path prefix
 
 
+LG_TOOL_MAP = {
+    TOOL_NAME.GET_CURRENT_TIME: get_current_time,
+    TOOL_NAME.CALCULATE: calculate,
+    TOOL_NAME.TIME_OFFSET: time_offset,
+    TOOL_NAME.READ_FILE_IN_SANDBOX: read_file_in_sandbox,
+    TOOL_NAME.LIST_DIRECTORY: list_directory,
+    TOOL_NAME.WRITE_FILE_IN_SANDBOX: write_file_in_sandbox,
+    TOOL_NAME.RUN_LIMITED_SHELL_COMMAND: run_limited_shell_command,
+    TOOL_NAME.STRING_REPLACE: string_replace,
+    TOOL_NAME.SEARCH_CODE: search_code,
+}
+
 # Tool list exported for the graph to use
 LG_TOOLS = [
     get_current_time,
