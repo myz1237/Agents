@@ -1,0 +1,7 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "agent": "./lang_graph/compile_interrupt.py:graph"
+  },
+  "env": ".env"
+}

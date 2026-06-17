@@ -271,9 +271,10 @@ def write_file_in_sandbox(path: str, content: str) -> str:
 
     safe = _safe_path(path)  # writing allows a non-existent target; only validate path safety
     safe.parent.mkdir(parents=True, exist_ok=True)
-    is_existing = safe.is_file()
-    with safe.open("a", encoding="utf-8") as f:
-        f.write(("\n" if is_existing else "") + content)
+    # Overwrite, not append: "write a file" replaces its content (matches the
+    # write_file_preview "(Overwrite)" diff). Use a dedicated append tool if you
+    # ever need append semantics.
+    safe.write_text(content, encoding="utf-8")
     return f"Successfully wrote to file: {path}"
 
 

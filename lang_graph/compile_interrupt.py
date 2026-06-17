@@ -286,6 +286,12 @@ def should_preview_or_return(state: AgentState):
     return "agent" if len(state["pending_writes"]) == 0 else "preview_write_tools"
 
 
+# Entry router: a fresh run with no messages (e.g. started empty in Studio) goes to
+# human first to collect the initial input; a seeded run (local REPL) goes to agent.
+def entry_router(state: AgentState):
+    return "agent" if state["messages"] else "human"
+
+
 # 6. Assemble the graph. interrupt() requires a checkpointer to persist state.
 graph = (
     StateGraph(AgentState)
@@ -294,7 +300,7 @@ graph = (
     .add_node("write_tools", write_tools)
     .add_node("preview_write_tools", preview_write_tools)
     .add_node("human", human)
-    .add_edge(START, "agent")
+    .add_conditional_edges(START, entry_router, ["agent", "human"])
     .add_conditional_edges("agent", should_continue, ["human", "read_tools_and_prepare_writes"])
     .add_edge("human", "agent")
     .add_conditional_edges("read_tools_and_prepare_writes", should_preview_or_return, ["preview_write_tools", "agent"])
